@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from .database import create_db_and_tables
-from .routers import accounts, expenses
+from database import create_db_and_tables
+from routers import accounts, expenses
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

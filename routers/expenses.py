@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
 from typing import List, Dict, Any
 from datetime import datetime
-from ..database import get_session
-from ..models import Expense, Account
+from database import get_session
+from models import Expense, Account
 
 router = APIRouter(
     prefix="/expenses",
