@@ -15,3 +15,11 @@ class Expense(SQLModel, table=True):
     amount: float
     description: Optional[str] = None
     account_id: Optional[int] = Field(default=None, foreign_key="account.id")
+
+class Loan(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    person_name: str = Field(index=True)
+    type: str # 'GIVEN' or 'TAKEN'
+    amount: float
+    date: datetime
+    description: Optional[str] = None

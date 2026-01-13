@@ -17,20 +17,34 @@ def create_expense(expense: Expense, session: Session = Depends(get_session)):
         account = session.get(Account, expense.account_id)
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
+        
+        # Deduct amount from account balance
+        account.balance -= expense.amount
+        session.add(account)
     
     session.add(expense)
     session.commit()
     session.refresh(expense)
     return expense
 
-@router.get("/", response_model=List[Expense])
+@router.get("/")
 def read_expenses(
     skip: int = 0, 
     limit: int = 100, 
     session: Session = Depends(get_session)
 ):
-    expenses = session.exec(select(Expense).offset(skip).limit(limit)).all()
-    return expenses
+    # Join with Account to get account name
+    statement = select(Expense, Account.name).join(Account, isouter=True).offset(skip).limit(limit).order_by(Expense.datetime.desc())
+    results = session.exec(statement).all()
+    
+    # Format response
+    expenses_with_account = []
+    for expense, account_name in results:
+        exp_dict = expense.model_dump()
+        exp_dict["account_name"] = account_name
+        expenses_with_account.append(exp_dict)
+        
+    return expenses_with_account
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_dashboard_stats(session: Session = Depends(get_session)):
@@ -57,15 +71,28 @@ def update_expense(expense_id: int, expense_data: Expense, session: Session = De
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    # Update balance logic? Ideally, we revert old amount and apply new. 
-    # For now, let's keep it simple or user handles balance separately?
-    # User asked for "ability to add or remove amounts available in that account".
-    # Syncing expense with balance is complex property.
-    # Let's just update the record.
+    # Handle Balance Update
+    old_amount = expense.amount
+    old_account_id = expense.account_id
     
+    # Revert old balance
+    if old_account_id:
+        old_account = session.get(Account, old_account_id)
+        if old_account:
+            old_account.balance += old_amount
+            session.add(old_account)
+
     collection_data = expense_data.model_dump(exclude_unset=True)
     for key, value in collection_data.items():
         setattr(expense, key, value)
+    
+    # Apply new balance
+    if expense.account_id:
+        new_account = session.get(Account, expense.account_id)
+        if not new_account:
+            raise HTTPException(status_code=404, detail="New Account not found")
+        new_account.balance -= expense.amount
+        session.add(new_account)
         
     session.add(expense)
     session.commit()
@@ -77,6 +104,14 @@ def delete_expense(expense_id: int, session: Session = Depends(get_session)):
     expense = session.get(Expense, expense_id)
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Refund balance to account
+    if expense.account_id:
+        account = session.get(Account, expense.account_id)
+        if account:
+            account.balance += expense.amount
+            session.add(account)
+            
     session.delete(expense)
     session.commit()
     return {"ok": True}
