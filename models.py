@@ -31,3 +31,19 @@ class Loan(SQLModel, table=True):
     amount: float
     date: datetime
     description: Optional[str] = None
+
+class InvestmentAccount(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_name: str
+    agent_name: str
+    status: str = Field(default="ACTIVE") # 'ACTIVE', 'CLOSED'
+    created_at: datetime = Field(default_factory=datetime.now)
+
+class InvestmentTransaction(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    account_id: int = Field(foreign_key="investmentaccount.id")
+    date: datetime
+    type: str # 'INVEST', 'WITHDRAW'
+    amount: float
+    profit: Optional[float] = None
+    description: Optional[str] = None
