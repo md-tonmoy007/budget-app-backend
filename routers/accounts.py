@@ -60,3 +60,33 @@ def adjust_balance(account_id: int, amount: float, session: Session = Depends(ge
     session.commit()
     session.refresh(account)
     return account
+
+from pydantic import BaseModel
+
+class TransferRequest(BaseModel):
+    from_account_id: int
+    to_account_id: int
+    amount: float
+    description: str | None = None
+
+@router.post("/transfer")
+def transfer_funds(req: TransferRequest, session: Session = Depends(get_session)):
+    from_acc = session.get(Account, req.from_account_id)
+    to_acc = session.get(Account, req.to_account_id)
+    
+    if not from_acc:
+        raise HTTPException(status_code=404, detail="Source account not found")
+    if not to_acc:
+        raise HTTPException(status_code=404, detail="Destination account not found")
+    
+    if from_acc.balance < req.amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds in source account")
+        
+    from_acc.balance -= req.amount
+    to_acc.balance += req.amount
+    
+    session.add(from_acc)
+    session.add(to_acc)
+    session.commit()
+    
+    return {"ok": True, "new_src_balance": from_acc.balance, "new_dest_balance": to_acc.balance}

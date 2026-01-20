@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import Session, select, delete
 from typing import List
 from database import get_session
-from models import InvestmentAccount, InvestmentTransaction
+from models import InvestmentAccount, InvestmentTransaction, Account
 from datetime import datetime
 
 router = APIRouter(prefix="/investments", tags=["investments"])
@@ -55,18 +55,21 @@ def delete_investment_account(account_id: int, session: Session = Depends(get_se
 
 @router.post("/transactions", response_model=InvestmentTransaction)
 def create_investment_transaction(transaction: InvestmentTransaction, session: Session = Depends(get_session)):
-    # If it's a withdrawal, we might need to update account status or calc profit
-    # If the user sends a transaction with profit, we assume they calculated it or passed it.
-    
-    # Logic for auto-calculating profit on withdrawal could be complex if we don't have enough info.
-    # The requirement says "return with investment (profit with investment money), profit".
-    # We will trust the frontend/user to provide the profit amount or calculate it based on what they input.
-    # However, if it's a withdrawal, we should check if we need to close the account?
-    # The user request said "if i take out my money... logging that... transaction status should be changed".
-    # We'll handle status change if a flag is passed, but the model doesn't have a flag in the transaction body.
-    # We can handle it in the frontend closing logic or a separate endpoint, or just infer it?
-    # For now, just Log.
-    
+    # Sync with Account balance if asset_account_id is provided
+    if transaction.asset_account_id:
+        account = session.get(Account, transaction.asset_account_id)
+        if not account:
+            raise HTTPException(status_code=404, detail="Asset account not found")
+        
+        if transaction.type == "INVEST":
+            account.balance -= transaction.amount
+        elif transaction.type == "WITHDRAW":
+            # Profit is also added to the account if it exists
+            total_return = transaction.amount + (transaction.profit or 0)
+            account.balance += total_return
+        
+        session.add(account)
+
     session.add(transaction)
     session.commit()
     session.refresh(transaction)
@@ -81,6 +84,18 @@ def delete_investment_transaction(transaction_id: int, session: Session = Depend
     transaction = session.get(InvestmentTransaction, transaction_id)
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Reverse balance sync if asset_account_id exists
+    if transaction.asset_account_id:
+        account = session.get(Account, transaction.asset_account_id)
+        if account:
+            if transaction.type == "INVEST":
+                account.balance += transaction.amount
+            elif transaction.type == "WITHDRAW":
+                total_return = transaction.amount + (transaction.profit or 0)
+                account.balance -= total_return
+            session.add(account)
+
     session.delete(transaction)
     session.commit()
     return {"ok": True}

@@ -32,6 +32,23 @@ class Loan(SQLModel, table=True):
     date: datetime
     description: Optional[str] = None
 
+class LoanAccount(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True) # Person or Institution Name
+    type: str # 'GIVEN' (I lent money) or 'TAKEN' (I borrowed money)
+    balance: float = Field(default=0.0) # Current outstanding balance
+    status: str = Field(default="ACTIVE") # 'ACTIVE', 'SETTLED'
+    created_at: datetime = Field(default_factory=datetime.now)
+
+class LoanTransaction(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    loan_account_id: int = Field(foreign_key="loanaccount.id")
+    asset_account_id: Optional[int] = Field(default=None, foreign_key="account.id") # Link to Asset Account (Cash/Bank)
+    date: datetime
+    type: str # 'PRINCIPAL' (Lending/Borrowing more), 'REPAYMENT' (Paying back)
+    amount: float
+    description: Optional[str] = None
+
 class InvestmentAccount(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     company_name: str
@@ -42,6 +59,7 @@ class InvestmentAccount(SQLModel, table=True):
 class InvestmentTransaction(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     account_id: int = Field(foreign_key="investmentaccount.id")
+    asset_account_id: Optional[int] = Field(default=None, foreign_key="account.id") # Link to Asset Account (Cash/Bank)
     date: datetime
     type: str # 'INVEST', 'WITHDRAW'
     amount: float
