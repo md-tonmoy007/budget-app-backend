@@ -4,3 +4,4 @@ sqlmodel
 psycopg2-binary
 python-multipart
 python-dotenv
+requests

@@ -99,3 +99,52 @@ def delete_investment_transaction(transaction_id: int, session: Session = Depend
     session.delete(transaction)
     session.commit()
     return {"ok": True}
+
+@router.put("/transactions/{transaction_id}", response_model=InvestmentTransaction)
+def update_investment_transaction(
+    transaction_id: int, 
+    transaction_data: InvestmentTransaction, 
+    session: Session = Depends(get_session)
+):
+    transaction = session.get(InvestmentTransaction, transaction_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # 1. Reverse the effect of the OLD transaction on the OLD account
+    if transaction.asset_account_id:
+        old_account = session.get(Account, transaction.asset_account_id)
+        if old_account:
+            if transaction.type == "INVEST":
+                old_account.balance += transaction.amount
+            elif transaction.type == "WITHDRAW":
+                # For withdraw, we gave them amount + profit. Take it back.
+                total_return = transaction.amount + (transaction.profit or 0)
+                old_account.balance -= total_return
+            session.add(old_account)
+
+    # 2. Update the transaction fields
+    transaction.account_id = transaction_data.account_id
+    transaction.asset_account_id = transaction_data.asset_account_id
+    transaction.type = transaction_data.type
+    transaction.amount = transaction_data.amount
+    transaction.profit = transaction_data.profit
+    transaction.description = transaction_data.description
+    transaction.date = transaction_data.date
+
+    # 3. Apply the effect of the NEW transaction on the NEW account
+    if transaction.asset_account_id:
+        new_account = session.get(Account, transaction.asset_account_id)
+        if not new_account:
+             raise HTTPException(status_code=404, detail="New asset account not found")
+
+        if transaction.type == "INVEST":
+            new_account.balance -= transaction.amount
+        elif transaction.type == "WITHDRAW":
+            total_return = transaction.amount + (transaction.profit or 0)
+            new_account.balance += total_return
+        session.add(new_account)
+
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+    return transaction
