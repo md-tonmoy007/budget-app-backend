@@ -5,3 +5,12 @@ psycopg2-binary
 python-multipart
 python-dotenv
 requests
+mcp[cli]
+httpx
+python-telegram-bot
+langchain
+langchain-openai
+langchain-mcp-adapters
+langgraph
+pydantic
+openai

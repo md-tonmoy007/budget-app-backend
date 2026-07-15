@@ -6,8 +6,9 @@ load_dotenv()
 
 # Use the provided connection string or fallback to env var
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/budget_planner")
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() in {"1", "true", "yes", "on"}
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=SQL_ECHO)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)

@@ -1,0 +1,10 @@
+Extract wishlist information from the user's message.
+Look for:
+- Item name
+- Estimated amount
+- Priority (High/Medium/Low)
+- Status (PENDING/BOUGHT)
+- Link
+- Notes
+
+Return a JSON with keys: name, estimated_amount, priority, status, link, notes.

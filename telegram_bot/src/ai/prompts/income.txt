@@ -1,0 +1,9 @@
+Extract income information from the user's message.
+Look for:
+- Amount received (numeric value)
+- Income type (e.g., Salary, Freelance)
+- Date/time of income
+- Description (source of income)
+- Account to deposit into
+
+Return a JSON with keys: amount, income_type, datetime, description, account_name.

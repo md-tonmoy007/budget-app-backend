@@ -1,0 +1,11 @@
+Extract loan information from the user's message.
+Look for:
+- Person/Institution name
+- Loan type (GIVEN or TAKEN)
+- Transaction type (PRINCIPAL or REPAYMENT)
+- Amount
+- Date/time
+- Description
+- Account used
+
+Return a JSON with keys: name, loan_type, transaction_type, amount, datetime, description, account_name.

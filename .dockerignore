@@ -1,5 +1,7 @@
 # Environment variables (should be passed at runtime)
 .env
+.env.*
+!.env.example
 
 # Python
 __pycache__/
@@ -16,7 +18,6 @@ ENV/
 
 # Git
 .git/
-.gitignore
 
 # IDE
 .vscode/

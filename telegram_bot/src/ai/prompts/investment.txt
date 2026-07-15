@@ -1,0 +1,11 @@
+Extract investment information from the user's message.
+Look for:
+- Investment account (company/agent)
+- Transaction type (INVEST or WITHDRAW)
+- Amount
+- Profit (for withdrawals)
+- Date/time
+- Description
+- Account used
+
+Return a JSON with keys: company_name, transaction_type, amount, profit, datetime, description, account_name.

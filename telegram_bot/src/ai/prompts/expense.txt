@@ -1,0 +1,9 @@
+Extract expense information from the user's message.
+Look for:
+- Amount spent (numeric value)
+- Expense type (e.g., Food, Transport, Shopping)
+- Date/time of the expense (ISO format if specified)
+- Description (where or what was purchased)
+- Payment method (account to use)
+
+Return a JSON with keys: amount, expense_type, datetime, description, account_name.
