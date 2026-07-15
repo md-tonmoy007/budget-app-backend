@@ -5,7 +5,7 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: sh ./backend/start_render.sh
+    dockerCommand: python ./backend/start_render.py
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
