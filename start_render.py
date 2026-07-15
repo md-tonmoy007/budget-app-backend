@@ -5,6 +5,13 @@ import sys
 import time
 
 
+def env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def main() -> int:
     port = os.getenv("PORT", "8000")
     mcp_port = os.getenv("MCP_PORT", "8001")
@@ -17,13 +24,25 @@ def main() -> int:
     env.setdefault("MCP_SERVER_URL", f"http://127.0.0.1:{mcp_port}/mcp")
 
     processes = [
-        subprocess.Popen(
-            ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", port],
-            env=env,
+        (
+            "backend",
+            subprocess.Popen(
+                ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", port],
+                env=env,
+            ),
+            True,
         ),
-        subprocess.Popen(["python", "-m", "mcp_server.server"], env=env),
-        subprocess.Popen(["python", "-m", "telegram_bot.src.bot.main"], env=env),
+        ("mcp_server", subprocess.Popen(["python", "-m", "mcp_server.server"], env=env), True),
     ]
+
+    if env_bool("TELEGRAM_BOT_ENABLED", True):
+        processes.append(
+            (
+                "telegram_bot",
+                subprocess.Popen(["python", "-m", "telegram_bot.src.bot.main"], env=env),
+                False,
+            )
+        )
 
     stopping = False
 
@@ -32,7 +51,7 @@ def main() -> int:
         if stopping:
             return
         stopping = True
-        for process in processes:
+        for _name, process, _critical in processes:
             if process.poll() is None:
                 process.terminate()
 
@@ -41,11 +60,18 @@ def main() -> int:
 
     try:
         while True:
-            for process in processes:
+            for name, process, critical in processes:
                 return_code = process.poll()
                 if return_code is not None:
+                    if not critical:
+                        print(
+                            f"{name} exited with status {return_code}; backend and MCP will keep running.",
+                            flush=True,
+                        )
+                        processes.remove((name, process, critical))
+                        continue
                     stop()
-                    for child in processes:
+                    for _child_name, child, _child_critical in processes:
                         if child is not process:
                             try:
                                 child.wait(timeout=10)
