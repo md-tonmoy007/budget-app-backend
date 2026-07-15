@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: budget-planner-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh ./backend/start_render.sh
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: budget-planner-db
+          property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-oss-120b:free
+      - key: BACKEND_REQUEST_TIMEOUT
+        value: "10.0"
+      - key: LOG_LEVEL
+        value: INFO
+
+databases:
+  - name: budget-planner-db
+    plan: free
+    databaseName: budget_planner
+    user: budget_planner
+    ipAllowList: []
