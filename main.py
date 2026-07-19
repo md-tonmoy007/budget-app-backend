@@ -29,7 +29,7 @@ app.include_router(income.router)
 app.include_router(investments.router)
 app.include_router(wishlist.router)
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Expense Tracker API is running"}
 
